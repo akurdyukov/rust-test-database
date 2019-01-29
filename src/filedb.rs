@@ -22,7 +22,33 @@ impl DB {
         Ok(DB { path_buf })
     }
 
-    pub fn put(&self, payload: &[u8]) -> Result<(), std::io::Error> {
+    pub fn iterator(&self) -> Result<StoreIterator, std::io::Error> {
+        StoreIterator::create(self)
+    }
+
+
+    pub fn write_module(&self) -> Result<Writer, std::io::Error> {
+        Writer::create(self)
+    }
+}
+
+
+pub struct Writer {
+    file: File,
+}
+
+impl Writer {
+    fn create(db: &DB) -> Result<Self, std::io::Error> {
+        let file = OpenOptions::new()
+            .read(true)
+            .create(true)
+            .append(true)
+            .open(&db.path_buf)?;
+
+        Ok(Writer { file })
+    }
+
+    pub fn put(&mut self, payload: &[u8]) -> Result<(), std::io::Error> {
         let len = payload.len();
         let buf_len = (len as u64).to_be_bytes();
 
@@ -31,20 +57,9 @@ impl DB {
         record_bytes.extend_from_slice(payload);
         record_bytes.extend_from_slice(&buf_len);
 
-        let mut file = OpenOptions::new()
-            .read(true)
-            .create(true)
-            .append(true)
-            .open(&self.path_buf)?;
-
-
-        file.write(&record_bytes)?;
+        self.file.write(&record_bytes)?;
 
         Ok(())
-    }
-
-    pub fn iterator(&self) -> StoreIterator {
-        StoreIterator::new(self)
     }
 }
 
@@ -55,14 +70,14 @@ pub struct StoreIterator {
 }
 
 impl StoreIterator {
-    fn new(db: &DB) -> Self {
-        let file = File::open(&db.path_buf).unwrap();
-        let file_len = file.metadata().unwrap().len();
+    fn create(db: &DB) -> Result<Self, std::io::Error> {
+        let file = File::open(&db.path_buf)?;
+        let file_len = file.metadata()?.len();
 
-        StoreIterator {
+        Ok(StoreIterator {
             file,
             offset: file_len,
-        }
+        })
     }
 
     fn shift_offset_to_head(&mut self, shift: u64) -> () {
