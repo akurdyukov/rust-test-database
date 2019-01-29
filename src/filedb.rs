@@ -22,7 +22,7 @@ impl DB {
         Ok(DB { path_buf })
     }
 
-    pub fn put(&self, payload: &[u8]) -> () {
+    pub fn put(&self, payload: &[u8]) -> Result<(), std::io::Error> {
         let len = payload.len();
         let buf_len = (len as u64).to_be_bytes();
 
@@ -35,12 +35,13 @@ impl DB {
             .read(true)
             .create(true)
             .append(true)
-            .open(&self.path_buf).unwrap();
+            .open(&self.path_buf)?;
 
 
-        file.write(&record_bytes).unwrap();
+        file.write(&record_bytes)?;
+
+        Ok(())
     }
-
 
     pub fn iterator(&self) -> StoreIterator {
         StoreIterator::new(self)
@@ -63,7 +64,6 @@ impl StoreIterator {
             offset: file_len,
         }
     }
-
 
     fn shift_offset_to_head(&mut self, shift: u64) -> () {
         if self.offset < shift {
@@ -94,11 +94,7 @@ impl Iterator for StoreIterator {
         // payload
         self.shift_offset_to_head(len);
         (&self.file).seek(SeekFrom::Start(self.offset)).unwrap();
-        //let mut buffer = vec![0; len as usize];
-        let mut payload = Vec::with_capacity(len as usize);
-        unsafe {
-            payload.set_len(len as usize);
-        }
+        let mut payload: Vec<u8> = vec![0; len as usize];
         (&self.file).read_exact(&mut payload).unwrap();
 
         // skip second payload length
