@@ -1,8 +1,4 @@
-
-
-mod custom_db;
-use custom_db::FileDB;
-
+mod filedb;
 
 fn main() {
     // db open
