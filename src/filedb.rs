@@ -85,17 +85,17 @@ impl Iterator for StoreIterator {
 
         // payload length
         self.shift_offset_to_head(DB_PAYLOAD_SIZE_LEN);
-        (&self.file).seek(SeekFrom::Start(self.offset)).unwrap();
+        self.file.seek(SeekFrom::Start(self.offset)).unwrap();
 
         let mut buffer = [0; 8];
-        (&self.file).read_exact(&mut buffer).unwrap();
+        self.file.read_exact(&mut buffer).unwrap();
         let len = u64::from_be_bytes(buffer);
 
         // payload
         self.shift_offset_to_head(len);
-        (&self.file).seek(SeekFrom::Start(self.offset)).unwrap();
+        self.file.seek(SeekFrom::Start(self.offset)).unwrap();
         let mut payload: Vec<u8> = vec![0; len as usize];
-        (&self.file).read_exact(&mut payload).unwrap();
+        self.file.read_exact(&mut payload).unwrap();
 
         // skip second payload length
         self.shift_offset_to_head(DB_PAYLOAD_SIZE_LEN);
