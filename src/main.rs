@@ -5,27 +5,30 @@ mod filedb;
 mod bench;
 
 fn main() {
-    test_filedb();
+    test_filedb_write();
+    test_filedb_read();
     print!("\n");
     test_rocksdb();
 }
 
-fn test_filedb() {
-    {
-        let text = file_read_contents("donor-file");
+fn test_filedb_write() {
+    let text = file_read_contents("donor-file");
 
-        let _bench = bench::Bench::new("Test filedb open + write");
-        // db open
-        let db = filedb::DB::open("my-db-file-path").unwrap();
-        let mut db_writer = db.write_module().unwrap();
+    let _bench = bench::Bench::new("Test filedb open + write");
+    // db open
+    let db = filedb::DB::open("my-db-file-path").unwrap();
+    let mut db_writer = db.write_module().unwrap();
 
-        let _bench = bench::Bench::new("Test filedb        write");
+    let _bench = bench::Bench::new("Test filedb        write");
 
-        for line in text.lines() {
-            let bytes = line.as_bytes();
-            db_writer.put(bytes).unwrap();
-        }
+    for line in text.lines() {
+        let bytes = line.as_bytes();
+        db_writer.put(bytes).unwrap();
     }
+}
+
+
+fn test_filedb_read() {
 
     // db read
     let _bench = bench::Bench::new("Test filedb  open + read");
