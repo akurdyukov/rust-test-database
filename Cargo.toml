@@ -5,3 +5,4 @@ authors = ["incker <sagan.stanislav@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rocksdb = "0.11.0"
