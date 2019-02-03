@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 rocksdb = "0.11.0"
+criterion = "0.2.9"
+event_store = { git = "https://github.com/incker/rust-event-storage-lib"}
