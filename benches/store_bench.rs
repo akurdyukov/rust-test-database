@@ -18,7 +18,6 @@ struct DBRow {
     test_rows: Option<Vec<Vec<u8>>>,
 }
 
-
 fn bench_rocksdb_write(c: &mut Criterion) {
     let mut db_row = DBRow {
         db: rocksdb::DB::open_default(ROCKSDB_FILE).unwrap(),
@@ -38,10 +37,8 @@ fn rocksdb_write(db_row: &mut DBRow) {
     db_row.db.put(&i.to_be_bytes(), val).unwrap();
 }
 
-
 fn bench_rocksdb_read(c: &mut Criterion) {
     let lines_len = fill_rocksdb();
-
     let mut db_row = DBRow {
         db: rocksdb::DB::open_default(ROCKSDB_FILE).unwrap(),
         counter: lines_len as u64,
@@ -162,29 +159,22 @@ fn fill_rocksdb() -> usize {
 
 
 fn donor_file_lines() -> Vec<Vec<u8>> {
-    let file = File::open(DONOR_FILE).unwrap();
-    let reader = BufReader::new(file);
-    let lines: Vec<Vec<u8>> = reader.lines()
-        .map(move |x| x.unwrap().as_bytes().to_owned())
-        .collect();
+    let increase_donor_lines: u32 = 1_000_000;
+
+    let donor_lines = {
+        let file = File::open(DONOR_FILE).unwrap();
+        let reader = BufReader::new(file);
+        let donor_lines: Vec<Vec<u8>> = reader.lines()
+            .map(move |x| x.unwrap().as_bytes().to_owned())
+            .collect();
+        donor_lines
+    };
+
+    let mut lines: Vec<Vec<u8>> = vec![];
+    for _ in 0..increase_donor_lines {
+        let mut cloned_lines = donor_lines.clone();
+        lines.append(&mut cloned_lines);
+    }
 
     lines
-}
-
-
-#[test]
-fn double_file_donor_content() {
-    use std::fs::OpenOptions;
-    use std::io::Read;
-    use std::io::Write;
-
-    let mut file = OpenOptions::new()
-        .read(true)
-        .append(true)
-        .open(DONOR_FILE).unwrap();
-    let file_len = file.metadata().unwrap().len();
-
-    let mut content: Vec<u8> = vec![0; file_len as usize];
-    file.read_exact(&mut content).unwrap();
-    file.write(&content).unwrap();
 }
