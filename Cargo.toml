@@ -1,5 +1,5 @@
 [package]
-name = "db-rust"
+name = "event-log-storage"
 version = "0.1.0"
 authors = ["incker <sagan.stanislav@gmail.com>"]
 edition = "2018"
