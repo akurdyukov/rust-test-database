@@ -4,10 +4,11 @@ extern crate criterion;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-
 use criterion::Criterion;
 
 const DONOR_FILE: &str = "donor-file";
+const ROCKSDB_FILE: &str = "rocksdb_storage";
+const EVENT_STORE_FILE: &str = "event_store_file";
 
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ struct DBRow {
 
 fn bench_rocksdb_write(c: &mut Criterion) {
     let mut db_row = DBRow {
-        db: rocksdb::DB::open_default("rocksdb_storage").unwrap(),
+        db: rocksdb::DB::open_default(ROCKSDB_FILE).unwrap(),
         counter: 0,
         test_rows: Some(donor_file_lines()),
     };
@@ -42,7 +43,7 @@ fn bench_rocksdb_read(c: &mut Criterion) {
     let lines_len = fill_rocksdb();
 
     let mut db_row = DBRow {
-        db: rocksdb::DB::open_default("rocksdb_storage").unwrap(),
+        db: rocksdb::DB::open_default(ROCKSDB_FILE).unwrap(),
         counter: lines_len as u64,
         test_rows: None,
     };
@@ -58,6 +59,14 @@ fn rocksdb_read(db_row: &mut DBRow) {
 }
 
 
+fn bench_rocksdb_init(c: &mut Criterion) {
+    let _lines_len = fill_rocksdb();
+    c.bench_function("rocksdb/init", |b| b.iter(||
+        rocksdb::DB::open_default(ROCKSDB_FILE).unwrap()
+    ));
+}
+
+
 #[derive(Debug)]
 struct EventStoreWriter {
     db: event_store::Writer,
@@ -67,7 +76,7 @@ struct EventStoreWriter {
 
 
 fn bench_event_store_write(c: &mut Criterion) {
-    let db = event_store::EventStore::open("my-db-file-path").unwrap();
+    let db = event_store::EventStore::open(EVENT_STORE_FILE).unwrap();
     let db_writer = db.write_module().unwrap();
 
     let mut event_writer = EventStoreWriter {
@@ -98,7 +107,7 @@ struct EventStoreReader {
 
 fn bench_event_store_read(c: &mut Criterion) {
     // db open
-    let db = event_store::EventStore::open("my-db-file-path").unwrap();
+    let db = event_store::EventStore::open(EVENT_STORE_FILE).unwrap();
     let db_reader = db.iterator().unwrap();
 
     let mut event_reader = EventStoreReader {
@@ -114,7 +123,24 @@ fn event_store_read(db_row: &mut EventStoreReader) {
 }
 
 
-criterion_group!(benches, bench_rocksdb_write, bench_rocksdb_read, bench_event_store_write, bench_event_store_read);
+fn bench_event_store_init(c: &mut Criterion) {
+    c.bench_function("event_store/init", |b| b.iter(||
+        event_store::EventStore::open(EVENT_STORE_FILE).unwrap().write_module()
+    ));
+}
+
+
+criterion_group!(
+    benches,
+
+    bench_rocksdb_write,
+    bench_rocksdb_read,
+    bench_rocksdb_init,
+
+    bench_event_store_write,
+    bench_event_store_read,
+    bench_event_store_init
+    );
 criterion_main!(benches);
 
 
@@ -122,7 +148,7 @@ fn fill_rocksdb() -> usize {
     let lines = donor_file_lines();
     let lines_len = lines.len();
     let mut db_row = DBRow {
-        db: rocksdb::DB::open_default("rocksdb_storage").unwrap(),
+        db: rocksdb::DB::open_default(ROCKSDB_FILE).unwrap(),
         counter: 0,
         test_rows: Some(lines),
     };
