@@ -1,47 +1,55 @@
-use crate as event_store;
+use std::fs;
 
-#[cfg(test)]
-pub mod tests {
-    use std::fs;
+use super::*;
 
-    use super::*;
+const TEST_FILE_1: &str = "test_store_file_1";
+const TEST_FILE_2: &str = "test_store_file_2";
+const TEST_FILE_3: &str = "test_store_file_3";
 
-    const TEST_FILE_1: &str = "test_store_file_1";
-    const TEST_FILE_2: &str = "test_store_file_2";
-    const TEST_FILE_3: &str = "test_store_file_3";
+#[test]
+fn test_event_store_write() {
+    // arrange
+    let _ = fs::remove_file(TEST_FILE_1);
+    let mut db = event_store::EventStore::open(TEST_FILE_1).unwrap();
 
-    fn event_store_write(file_name: &str, payload: &[u8]) -> Result<(), std::io::Error> {
-        let db = event_store::EventStore::open(file_name).unwrap();
-        let mut db_writer = db.write_module().unwrap();
-        db_writer.put(payload)
-    }
+    // act
+    let result = db.put(b"test record");
 
-    fn event_store_last_record(file_name: &str) -> Option<Vec<u8>> {
-        let db = event_store::EventStore::open(file_name).unwrap();
-        let mut iterator = db.iterator().unwrap();
-        iterator.next()
-    }
+    // assert
+    assert!(result.is_ok());
+    let _ = fs::remove_file(TEST_FILE_1);
+}
 
+#[test]
+fn test_event_store_read() {
+    // arrange
+    let _ = fs::remove_file(TEST_FILE_2);
+    let mut db = event_store::EventStore::open(TEST_FILE_2).unwrap();
+    db.put(b"test record").ok();
 
-    #[test]
-    fn test_event_store_write() {
-        let write_result = tests::event_store_write(TEST_FILE_1, b"test record");
-        fs::remove_file(TEST_FILE_1).unwrap();
-        assert!(write_result.is_ok());
-    }
+    let mut iterator = db.iterator().unwrap();
 
-    #[test]
-    fn test_event_store_read() {
-        tests::event_store_write(TEST_FILE_2, b"test record").unwrap();
-        let last_record = tests::event_store_last_record(TEST_FILE_2).unwrap();
-        fs::remove_file(TEST_FILE_2).unwrap();
-        assert_eq!(b"test record".to_vec(), last_record);
-    }
+    // act
+    let item = iterator.next();
 
-    #[test]
-    fn test_event_store_empty() {
-        let last_record = tests::event_store_last_record(TEST_FILE_3);
-        fs::remove_file(TEST_FILE_3).unwrap();
-        assert_eq!(None, last_record);
-    }
+    // assert
+    assert!(item.is_some());
+    let value = item.unwrap();
+    assert_eq!(b"test record".to_vec(), value);
+    let _ = fs::remove_file(TEST_FILE_2);
+}
+
+#[test]
+fn test_event_store_empty() {
+    // arrange
+    let _ = fs::remove_file(TEST_FILE_3);
+    let db = event_store::EventStore::open(TEST_FILE_3).unwrap();
+    let mut iterator = db.iterator().unwrap();
+
+    // act
+    let item = iterator.next();
+
+    // assert
+    assert!(item.is_none());
+    let _ = fs::remove_file(TEST_FILE_3);
 }
