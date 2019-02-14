@@ -1,5 +1,5 @@
 [package]
-name = "event_store"
+name = "event_log_store"
 version = "0.1.0"
 authors = ["incker <sagan.stanislav@gmail.com>"]
 edition = "2018"
